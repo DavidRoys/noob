@@ -53,6 +53,36 @@ export class Init {
 
 
 /*
+
+chooseTargetPlatform(dir) {
+        const options = ({
+            canPickMany: false,
+            ignoreFocusOut: true,
+            placeHolder: resources_1.default.targetPlatformPlaceholder
+        });
+        const createItem = (label, description, picked = false) => {
+            return {
+                "label": label,
+                "description": description,
+                "picked": picked
+            };
+        };
+        return new Promise((resolve) => {
+            vscode.window.showQuickPick([
+                createItem("8.0", "Business Central 2021 release wave 2", true),
+                createItem("7.0", "Business Central 2021 release wave 1"),
+                createItem("6.0", "Business Central 2020 release wave 2"),
+                createItem("5.0", "Business Central 2020 release wave 1"),
+                createItem("4.0", "Business Central 2019 release wave 2"),
+                createItem("3.0", "Business Central Spring '19 Release"),
+                createItem("2.0", "Business Central Fall '18 Release"),
+                createItem("1.0", "Business Central Spring '18 Release")
+            ], options).then(target => {
+                resolve([dir, target.label]);
+            });
+        });
+    }
+
         let cops: Map<Cops, string> = new Map();
         cops.set(Cops.AA0206, 'AA0206 - The value assigned to a variable must be used, otherwise the variable is not necessary.')
         cops.set(Cops.AA0137, 'AA0137 - Do not declare variables that are unused.')

@@ -32,10 +32,12 @@ To provide a menu of project types, simply create a folderChoice element in your
 {
     "folderChoice": [
         {
+            "label": "1",
             "description": "Folder 1 Description",
             "folder": "folder1"
         },
         {
+            "label": "2",
             "description": "Folder 2 Description",
             "folder": "folder2"
         }
