@@ -26,7 +26,7 @@ If the folder you are copying files from contains a .noob folder and if that fol
 
 ### Folder Choice
 
-To provide a menu of project types, simply create a folderChoice element in your .noob\settings.json file as an array of objects where the first element is the menu text the user will select from and the second element is the folder name. 
+To provide a menu of project types, simply create a folderChoice element in your .noob\settings.json file as an array of objects where the first element is the label the, the second element is the description and the thrid element is the folder name. 
 
 ```
 {
@@ -45,6 +45,8 @@ To provide a menu of project types, simply create a folderChoice element in your
 }
 ```
 
+Note that any folders that appear in the list of folder choices will be excluded from the copy if they are not the chosen folder.
+
 ### Variable Substitution
 
 To substitue variables within a file, simply include the path to the file name in the toSubstitute array.
@@ -61,8 +63,8 @@ The following variables are supported:
 | Variable Name | Substituted With |
 |-|-|
 | {{NewGUID}} | A new GUID will be generated at the start of running the noob.init command and substituted for any occurence of this variable. |
-| {{CurrentFolder}} | The name of the current project folder. |
-| {{ParentFolder}} | The name of the parent folder. |
+| {{CurrentFolder}} | The name of the current project folder. In my projects I use the current folder name as the app name and I will use this value as the app name in my app.json. |
+| {{ParentFolder}} | The name of the parent folder. In my projects I use the parent folder as the customer name. I can join the customer name to my own company name to form the publisher name for my AL projects. |
 
 ### Common Files
 
