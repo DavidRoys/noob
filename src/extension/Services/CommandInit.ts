@@ -9,7 +9,7 @@ import { Err } from "../Utils/Err";
 
 export class Init {
     async resolve() {
-        let FilesToCopyMap : Map<string, string> = new Map<string, string>();
+        let FilesToCopyMap: Map<string, string> = new Map<string, string>();
 
         let NewProjectFilesLocation: string = Config.getNewProjectFilesLocation();
 
@@ -41,11 +41,30 @@ export class Init {
         // Copy all files from the folder path to a map but ignore NewProjectFilesLocation.
         // Iterate through all the subdirectories.
 
-        this.listFilesInDirectory(NewProjectFilesLocation, FilesToCopyMap);
+        // Find the target workspace folder
+        let allWorkspaceFolders = vscode.workspace.workspaceFolders;
+        let workSpaceFolderCount = allWorkspaceFolders?.length;
+        let targetFolder: string[];
+
+        if (allWorkspaceFolders = undefined) {
+            vscode.window.showErrorMessage('No workspace folder found.');
+            exit;
+        } else {
+            if (workSpaceFolderCount && workSpaceFolderCount > 1) {
+                vscode.window.showErrorMessage('Multi workspace not supported.');
+                exit;
+            }
+        }
+
+        targetFolder = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath)!;
+
+        vscode.window.showInformationMessage('Copying files to ' + targetFolder[0]);
+
+        this.listFilesInDirectory(NewProjectFilesLocation, FilesToCopyMap, targetFolder[0]);
 
         for (let key of FilesToCopyMap.keys()) {
             let value = FilesToCopyMap.get(key);
-            OwnConsole.ownConsole.appendLine(key + " -> " + value);
+            OwnConsole.ownConsole.appendLine(key + " <- " + value);
         }
 
         // const files = fs.readdirSync(NewProjectFilesLocation);
@@ -134,7 +153,7 @@ export class Init {
         */
     }
 
-    private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>) {
+    private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string) {
         const files = fs.readdirSync(directoryPath);
 
         var path = require('path');
@@ -144,16 +163,16 @@ export class Init {
             const stat = fs.statSync(fromPath);
             if (!stat.isDirectory()) {
                 OwnConsole.ownConsole.appendLine("- " + fromPath);
-                FilesToCopyMap.set("dest "+fromPath,fromPath);
+                FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
             } else {
                 if (file != '.noob') {
-                FilesToCopyMap.set("dest " + fromPath, fromPath);
-                OwnConsole.ownConsole.appendLine("- "+ fromPath + " (dir)");
-                this.listFilesInDirectory(fromPath, FilesToCopyMap);
+                    FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
+                    OwnConsole.ownConsole.appendLine("- " + fromPath + " (dir)");
+                    this.listFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file));
                 }
             }
             OwnConsole.ownConsole.show();
         }
- 
+
     }
 }
