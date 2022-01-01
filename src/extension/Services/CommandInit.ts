@@ -7,6 +7,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { Err } from "../Utils/Err";
 
+interface FolderQuickPickItem { label: string, description?: string, detail?: string, picked?: boolean, alwaysShow?: boolean; folder: string }
+
+
 export class Init {
     async resolve() {
         let FilesToCopyMap: Map<string, string> = new Map<string, string>();
@@ -30,6 +33,21 @@ export class Init {
             return;
         }
 
+        var foldersToInclude: string[] = [];
+        var foldersToExclude: string[] = [];
+        await this.findFoldersToProcess(NewProjectFilesLocation, foldersToInclude, foldersToExclude);
+
+        console.log('Folders to include:');
+        foldersToInclude.forEach((element) => {
+            console.log(`   +   ${element}`);
+        });
+
+        console.log('Folders to exclude:');
+        foldersToExclude.forEach((element) => {
+            console.log(`   -   ${element}`);
+        });
+
+
         var path = require('path');
         const settingsFolderName: string = path.join(NewProjectFilesLocation, '.noob');
         const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
@@ -38,14 +56,37 @@ export class Init {
             let noobSettingsRaw = fs.readFileSync(settingsFileName);
             // need to have a proper class here so I can access the members such as folder for the selected item.
             let noobSettings = JSON.parse(noobSettingsRaw.toString());
-            const result = await window.showQuickPick(noobSettings.folderPickItems, 
+
+            let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
+
+            // quickPickItems.forEach(element => {
+            //     if (!element.folder) {
+            //         vscode.window.showErrorMessage(`Folder pick item ${element.}`);
+            //         exit;
+            //     }
+            // });
+
+            // if quickPickItems != undefined {
+
+            // }
+
+            // let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems.map((folderPickItem: FolderQuickPickItem) => {
+            //     return {
+            //         label: folderPickItem.label!,
+            //         picked: folderPickItem.picked,
+            //         description: folderPickItem.description,
+            //         folder: folderPickItem.folder
+            //     };
+            // });
+
+            const result = await window.showQuickPick(quickPickItems,
                 {
                     placeHolder: `${noobSettings.folderPickPlaceHolder}`,
-                    onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
+                    //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
                 });
 
-            window.showInformationMessage(`Got: ${result?.folder}`);
-            
+            window.showInformationMessage(`Got folder: ${result?.folder}`);
+
             vscode.window.showInformationMessage(`Settings file is \n${noobSettings.toString()}`);
         } else {
             vscode.window.showInformationMessage('No settings file found at ' + settingsFileName);
@@ -165,6 +206,37 @@ export class Init {
                 impl.resolve();
         */
     }
+
+    private async findFoldersToProcess(currentPath: string, foldersToInclude: string[], foldersToExclude: string[]) {
+        var path = require('path');
+        const settingsFolderName: string = path.join(currentPath, '.noob');
+        const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
+        if (fs.existsSync(settingsFileName)) {
+            vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
+            let noobSettingsRaw = fs.readFileSync(settingsFileName);
+            let noobSettings = JSON.parse(noobSettingsRaw.toString());
+
+            let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
+
+            const result = await window.showQuickPick(quickPickItems,
+                {
+                    placeHolder: `${noobSettings.folderPickPlaceHolder}`,
+                    //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
+                });
+
+            if (result != undefined) {
+                window.showInformationMessage(`Got folder: ${result.folder}`);
+                foldersToInclude.push(path.join(currentPath, result.folder));
+
+                quickPickItems.forEach((element, index) => {
+                    if (element != result) {
+                        foldersToExclude.push(path.join(currentPath, element.folder));
+                    } 
+                });
+            }
+        }
+    }
+
 
     private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string) {
         const files = fs.readdirSync(directoryPath);
