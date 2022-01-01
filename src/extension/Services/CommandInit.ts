@@ -10,6 +10,7 @@ import { Err } from "../Utils/Err";
 export class Init {
     async resolve() {
         let FilesToCopyMap: Map<string, string> = new Map<string, string>();
+        //let noobSettingsRaw: string = '';
 
         let NewProjectFilesLocation: string = Config.getNewProjectFilesLocation();
 
@@ -34,6 +35,18 @@ export class Init {
         const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
         if (fs.existsSync(settingsFileName)) {
             vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
+            let noobSettingsRaw = fs.readFileSync(settingsFileName);
+            // need to have a proper class here so I can access the members such as folder for the selected item.
+            let noobSettings = JSON.parse(noobSettingsRaw.toString());
+            const result = await window.showQuickPick(noobSettings.folderPickItems, 
+                {
+                    placeHolder: `${noobSettings.folderPickPlaceHolder}`,
+                    onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
+                });
+
+            window.showInformationMessage(`Got: ${result?.folder}`);
+            
+            vscode.window.showInformationMessage(`Settings file is \n${noobSettings.toString()}`);
         } else {
             vscode.window.showInformationMessage('No settings file found at ' + settingsFileName);
         }
