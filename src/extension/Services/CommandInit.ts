@@ -33,68 +33,6 @@ export class Init {
             return;
         }
 
-        var foldersToInclude: string[] = [];
-        var foldersToExclude: string[] = [];
-        await this.findFoldersToProcess(NewProjectFilesLocation, foldersToInclude, foldersToExclude);
-
-        console.log('Folders to include:');
-        foldersToInclude.forEach((element) => {
-            console.log(`   +   ${element}`);
-        });
-
-        console.log('Folders to exclude:');
-        foldersToExclude.forEach((element) => {
-            console.log(`   -   ${element}`);
-        });
-
-
-        var path = require('path');
-        const settingsFolderName: string = path.join(NewProjectFilesLocation, '.noob');
-        const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
-        if (fs.existsSync(settingsFileName)) {
-            vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
-            let noobSettingsRaw = fs.readFileSync(settingsFileName);
-            // need to have a proper class here so I can access the members such as folder for the selected item.
-            let noobSettings = JSON.parse(noobSettingsRaw.toString());
-
-            let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
-
-            // quickPickItems.forEach(element => {
-            //     if (!element.folder) {
-            //         vscode.window.showErrorMessage(`Folder pick item ${element.}`);
-            //         exit;
-            //     }
-            // });
-
-            // if quickPickItems != undefined {
-
-            // }
-
-            // let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems.map((folderPickItem: FolderQuickPickItem) => {
-            //     return {
-            //         label: folderPickItem.label!,
-            //         picked: folderPickItem.picked,
-            //         description: folderPickItem.description,
-            //         folder: folderPickItem.folder
-            //     };
-            // });
-
-            const result = await window.showQuickPick(quickPickItems,
-                {
-                    placeHolder: `${noobSettings.folderPickPlaceHolder}`,
-                    //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
-                });
-
-            window.showInformationMessage(`Got folder: ${result?.folder}`);
-
-            vscode.window.showInformationMessage(`Settings file is \n${noobSettings.toString()}`);
-        } else {
-            vscode.window.showInformationMessage('No settings file found at ' + settingsFileName);
-        }
-
-        // Copy all files from the folder path to a map but ignore NewProjectFilesLocation.
-        // Iterate through all the subdirectories.
-
         // Find the target workspace folder
         let allWorkspaceFolders = vscode.workspace.workspaceFolders;
         let workSpaceFolderCount = allWorkspaceFolders?.length;
@@ -112,9 +50,66 @@ export class Init {
 
         targetFolder = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath)!;
 
-        vscode.window.showInformationMessage('Copying files to ' + targetFolder[0]);
+        var foldersToExclude: string[] = [];
+        await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, targetFolder[0]);
 
-        this.listFilesInDirectory(NewProjectFilesLocation, FilesToCopyMap, targetFolder[0]);
+        console.log('Folders to exclude:');
+        foldersToExclude.forEach((element) => {
+            console.log(`   -   ${element}`);
+        });
+
+
+        // var path = require('path');
+        // const settingsFolderName: string = path.join(NewProjectFilesLocation, '.noob');
+        // const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
+        // if (fs.existsSync(settingsFileName)) {
+        //     vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
+        //     let noobSettingsRaw = fs.readFileSync(settingsFileName);
+        //     // need to have a proper class here so I can access the members such as folder for the selected item.
+        //     let noobSettings = JSON.parse(noobSettingsRaw.toString());
+
+        //     let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
+
+        //     // quickPickItems.forEach(element => {
+        //     //     if (!element.folder) {
+        //     //         vscode.window.showErrorMessage(`Folder pick item ${element.}`);
+        //     //         exit;
+        //     //     }
+        //     // });
+
+        //     // if quickPickItems != undefined {
+
+        //     // }
+
+        //     // let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems.map((folderPickItem: FolderQuickPickItem) => {
+        //     //     return {
+        //     //         label: folderPickItem.label!,
+        //     //         picked: folderPickItem.picked,
+        //     //         description: folderPickItem.description,
+        //     //         folder: folderPickItem.folder
+        //     //     };
+        //     // });
+
+        //     const result = await window.showQuickPick(quickPickItems,
+        //         {
+        //             placeHolder: `${noobSettings.folderPickPlaceHolder}`,
+        //             //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
+        //         });
+
+        //     window.showInformationMessage(`Got folder: ${result?.folder}`);
+
+        //     vscode.window.showInformationMessage(`Settings file is \n${noobSettings.toString()}`);
+        // } else {
+        //     vscode.window.showInformationMessage('No settings file found at ' + settingsFileName);
+        // }
+
+        // Copy all files from the folder path to a map but ignore NewProjectFilesLocation.
+        // Iterate through all the subdirectories.
+
+
+        // vscode.window.showInformationMessage('Copying files to ' + targetFolder[0]);
+
+        // this.listFilesInDirectory(NewProjectFilesLocation, FilesToCopyMap, targetFolder[0]);
 
         for (let key of FilesToCopyMap.keys()) {
             let value = FilesToCopyMap.get(key);
@@ -207,7 +202,7 @@ export class Init {
         */
     }
 
-    private async findFoldersToProcess(currentPath: string, foldersToInclude: string[], foldersToExclude: string[]) {
+    private async findFilesToProcess(currentPath: string, filesToFromMap: Map<string, string>, foldersToExclude: string[], targetFolder: string) {
         var path = require('path');
         const settingsFolderName: string = path.join(currentPath, '.noob');
         const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
@@ -226,7 +221,7 @@ export class Init {
 
             if (result != undefined) {
                 window.showInformationMessage(`Got folder: ${result.folder}`);
-                foldersToInclude.push(path.join(currentPath, result.folder));
+                this.findFilesToProcess(path.join(currentPath, result.folder), filesToFromMap, foldersToExclude, targetFolder);
 
                 quickPickItems.forEach((element, index) => {
                     if (element != result) {
@@ -235,10 +230,13 @@ export class Init {
                 });
             }
         }
+
+        this.listFilesInDirectory(currentPath, filesToFromMap, targetFolder, foldersToExclude);
+    
     }
 
 
-    private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string) {
+    private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string, foldersToExclude: string[]) {
         const files = fs.readdirSync(directoryPath);
 
         var path = require('path');
@@ -250,10 +248,10 @@ export class Init {
                 OwnConsole.ownConsole.appendLine("- " + fromPath);
                 FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
             } else {
-                if (file != '.noob') {
+                if (file != '.noob' && !foldersToExclude.includes(fromPath) ) {
                     FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
                     OwnConsole.ownConsole.appendLine("- " + fromPath + " (dir)");
-                    this.listFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file));
+                    this.listFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file), foldersToExclude);
                 }
             }
             OwnConsole.ownConsole.show();
