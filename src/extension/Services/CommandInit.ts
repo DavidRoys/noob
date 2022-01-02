@@ -116,6 +116,8 @@ export class Init {
             OwnConsole.ownConsole.appendLine(key + " <- " + value);
         }
 
+        OwnConsole.ownConsole.show();
+
         // const files = fs.readdirSync(NewProjectFilesLocation);
 
         // for (const file of files) {
@@ -213,7 +215,7 @@ export class Init {
 
             let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
 
-            const result = await window.showQuickPick(quickPickItems,
+            var result = await window.showQuickPick(quickPickItems,
                 {
                     placeHolder: `${noobSettings.folderPickPlaceHolder}`,
                     //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
@@ -224,15 +226,15 @@ export class Init {
                 this.findFilesToProcess(path.join(currentPath, result.folder), filesToFromMap, foldersToExclude, targetFolder);
 
                 quickPickItems.forEach((element, index) => {
-                    if (element != result) {
-                        foldersToExclude.push(path.join(currentPath, element.folder));
-                    } 
+                    foldersToExclude.push(path.join(currentPath, element.folder));
                 });
+
             }
+            
         }
 
         this.listFilesInDirectory(currentPath, filesToFromMap, targetFolder, foldersToExclude);
-    
+
     }
 
 
@@ -248,7 +250,7 @@ export class Init {
                 OwnConsole.ownConsole.appendLine("- " + fromPath);
                 FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
             } else {
-                if (file != '.noob' && !foldersToExclude.includes(fromPath) ) {
+                if (file != '.noob' && !foldersToExclude.includes(fromPath)) {
                     FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
                     OwnConsole.ownConsole.appendLine("- " + fromPath + " (dir)");
                     this.listFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file), foldersToExclude);
