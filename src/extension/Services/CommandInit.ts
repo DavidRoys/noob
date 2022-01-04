@@ -6,6 +6,7 @@ import { OwnConsole } from "../console";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { Err } from "../Utils/Err";
+import {v4 as uuidv4} from 'uuid';
 
 interface FolderQuickPickItem { label: string, description?: string, detail?: string, picked?: boolean, alwaysShow?: boolean; folder: string }
 
@@ -13,9 +14,20 @@ interface FolderQuickPickItem { label: string, description?: string, detail?: st
 export class Init {
     async resolve() {
         let FilesToCopyMap: Map<string, string> = new Map<string, string>();
-        //let noobSettingsRaw: string = '';
-
+        let FilesToSubstitute: string[] = [];
         let NewProjectFilesLocation: string = Config.getNewProjectFilesLocation();
+        let targetFolder: string[];
+        var foldersToExclude: string[] = [];
+        const NewGuidPlaceholder: string = '{{NewGUID}}';
+        const CurrentFolderPlaceholder: string = '{{CurrentFolder}}';
+        const ParentFolderPlaceholder: string = '{{ParentFolder}}';
+        let NewGuidValue = uuidv4();
+        let ParentFolderValue = '';
+        let CurrentFolderValue = '';
+
+        //| {{NewGUID}} | A new GUID will be generated at the start of running the noob.init command and substituted for any occurence of this variable. |
+        //| {{CurrentFolder}} | The name of the current project folder. In my projects I use the current folder name as the app name and I will use this value as the app name in my app.json. |
+        //| {{ParentFolder}} | The name of the parent folder. In my projects I use the parent folder as the customer name. I can join the customer name to my own company name to form the publisher name for my AL projects. |
 
         if (NewProjectFilesLocation == '') {
             let errorMessage = 'You must specify a path to the folder that contains new files and settings in the Noob configuration settings.';
@@ -23,11 +35,11 @@ export class Init {
             vscode.window.showErrorMessage(errorMessage);
             return;
         } else {
-            let informationMessage = 'Copying files from ' + NewProjectFilesLocation;
-            vscode.window.showInformationMessage(informationMessage);
+            //let informationMessage = 'Copying files from ' + NewProjectFilesLocation;
+            //vscode.window.showInformationMessage(informationMessage);
         }
 
-        // Check that the file path specified in the settings exists. Don't continue.    
+        // Check that the file path specified in the settings exists. Show an error message and exit if it doesn't.    
         if (!fs.existsSync(NewProjectFilesLocation)) {
             vscode.window.showErrorMessage('Folder ' + NewProjectFilesLocation + ' does not exist.');
             return;
@@ -36,209 +48,150 @@ export class Init {
         // Find the target workspace folder
         let allWorkspaceFolders = vscode.workspace.workspaceFolders;
         let workSpaceFolderCount = allWorkspaceFolders?.length;
-        let targetFolder: string[];
 
         if (allWorkspaceFolders = undefined) {
             vscode.window.showErrorMessage('No workspace folder found.');
-            exit;
+            return;
         } else {
             if (workSpaceFolderCount && workSpaceFolderCount > 1) {
                 vscode.window.showErrorMessage('Multi workspace not supported.');
-                exit;
+                return;
             }
         }
 
         targetFolder = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath)!;
+        let CurrentFolder = vscode.workspace.workspaceFolders?.map(folder => folder.name)!;
+        CurrentFolderValue = CurrentFolder[0];
+        var path = require('path');
+        let CurrentFolderSplit = targetFolder[0].split(path.sep);
+        ParentFolderValue = CurrentFolderSplit[CurrentFolderSplit.length -2];
 
-        var foldersToExclude: string[] = [];
-        await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, targetFolder[0]);
+        await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, FilesToSubstitute, targetFolder[0]);
 
-        console.log('Folders to exclude:');
-        foldersToExclude.forEach((element) => {
-            console.log(`   -   ${element}`);
-        });
-
-
-        // var path = require('path');
-        // const settingsFolderName: string = path.join(NewProjectFilesLocation, '.noob');
-        // const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
-        // if (fs.existsSync(settingsFileName)) {
-        //     vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
-        //     let noobSettingsRaw = fs.readFileSync(settingsFileName);
-        //     // need to have a proper class here so I can access the members such as folder for the selected item.
-        //     let noobSettings = JSON.parse(noobSettingsRaw.toString());
-
-        //     let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
-
-        //     // quickPickItems.forEach(element => {
-        //     //     if (!element.folder) {
-        //     //         vscode.window.showErrorMessage(`Folder pick item ${element.}`);
-        //     //         exit;
-        //     //     }
-        //     // });
-
-        //     // if quickPickItems != undefined {
-
-        //     // }
-
-        //     // let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems.map((folderPickItem: FolderQuickPickItem) => {
-        //     //     return {
-        //     //         label: folderPickItem.label!,
-        //     //         picked: folderPickItem.picked,
-        //     //         description: folderPickItem.description,
-        //     //         folder: folderPickItem.folder
-        //     //     };
-        //     // });
-
-        //     const result = await window.showQuickPick(quickPickItems,
-        //         {
-        //             placeHolder: `${noobSettings.folderPickPlaceHolder}`,
-        //             //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
-        //         });
-
-        //     window.showInformationMessage(`Got folder: ${result?.folder}`);
-
-        //     vscode.window.showInformationMessage(`Settings file is \n${noobSettings.toString()}`);
-        // } else {
-        //     vscode.window.showInformationMessage('No settings file found at ' + settingsFileName);
-        // }
-
-        // Copy all files from the folder path to a map but ignore NewProjectFilesLocation.
-        // Iterate through all the subdirectories.
-
-
-        // vscode.window.showInformationMessage('Copying files to ' + targetFolder[0]);
-
-        // this.listFilesInDirectory(NewProjectFilesLocation, FilesToCopyMap, targetFolder[0]);
-
+        // Log the files that will be copied and substituted to the console to allow the user to make an informed decision.
+        OwnConsole.ownConsole.appendLine('Preparing to copy files...');
         for (let key of FilesToCopyMap.keys()) {
             let value = FilesToCopyMap.get(key);
-            OwnConsole.ownConsole.appendLine(key + " <- " + value);
+            OwnConsole.ownConsole.appendLine(`  from "${value}" --> "${key}"`);
         }
+
+        // Remove duplicates from files to substitute.
+        FilesToSubstitute = FilesToSubstitute.filter((item, pos) => {
+            return FilesToSubstitute.indexOf(item) == pos;
+        });
+
+        // Log the files that will be substituted.
+        if (FilesToSubstitute.length > 0) {
+            OwnConsole.ownConsole.appendLine('Potentially substituting values in files...');
+            FilesToSubstitute.forEach(element => {
+                OwnConsole.ownConsole.appendLine(`  "${element}"`);
+            });
+        } else {
+            OwnConsole.ownConsole.appendLine('No files for substition of values requested.');
+        }
+
+
+        // If we're going to overwrite files - get the user to confirm before continuing.
+        let FilesToOverwrite: string[] = [];
+        FilesToCopyMap.forEach((value, key) => {
+            if (fs.existsSync(key)) {
+                const fileStatus = fs.statSync(key);
+                if (fileStatus.isFile())
+                    FilesToOverwrite.push(key);
+            }
+        });
+
+        OwnConsole.ownConsole.appendLine(`Potentially overwriting ${FilesToOverwrite.length} files...`);
+        FilesToOverwrite.forEach(element => {
+            OwnConsole.ownConsole.appendLine(`  "${element}"`);
+        });
 
         OwnConsole.ownConsole.show();
 
-        // const files = fs.readdirSync(NewProjectFilesLocation);
-
-        // for (const file of files) {
-        //     const fromPath = path.join(NewProjectFilesLocation, file);
-        //     const stat = fs.statSync(fromPath);
-        //     if (!stat.isDirectory()) {
-        //         if (fromPath != settingsFolderName) {
-        //             OwnConsole.ownConsole.appendLine(fromPath);
-        //         }
-        //     }
-        //     OwnConsole.ownConsole.show();
-        // }
-
-        // if find a .noob\settings.json
-
-        // read the list of folders that could be used and if there is more than one show a quick pick to get the source folder
-        // read a list of files that should be parsed and have values substituted.
-        // read the path to common files
-
-        // else
-
-        // set source folder to the settings noob path folder.
-
-        // If we have a common files path copy these files.
-        // Copy all files from the source folder to the current folder.
-        // If the file is in the substitues list process substitutions.
-
-        // possibly need to do a "reload window" type to get this project recognised as an al project.
-
-
-        /*
-        
-        chooseTargetPlatform(dir) {
-                const options = ({
-                    canPickMany: false,
-                    ignoreFocusOut: true,
-                    placeHolder: resources_1.default.targetPlatformPlaceholder
-                });
-                const createItem = (label, description, picked = false) => {
-                    return {
-                        "label": label,
-                        "description": description,
-                        "picked": picked
-                    };
-                };
-                return new Promise((resolve) => {
-                    vscode.window.showQuickPick([
-                        createItem("8.0", "Business Central 2021 release wave 2", true),
-                        createItem("7.0", "Business Central 2021 release wave 1"),
-                        createItem("6.0", "Business Central 2020 release wave 2"),
-                        createItem("5.0", "Business Central 2020 release wave 1"),
-                        createItem("4.0", "Business Central 2019 release wave 2"),
-                        createItem("3.0", "Business Central Spring '19 Release"),
-                        createItem("2.0", "Business Central Fall '18 Release"),
-                        createItem("1.0", "Business Central Spring '18 Release")
-                    ], options).then(target => {
-                        resolve([dir, target.label]);
-                    });
-                });
+        if (FilesToOverwrite.length > 0) {
+            OwnConsole.ownConsole.appendLine(`\n${FilesToOverwrite.length} files will be overwritten. Are you sure you want to continue? (Waiting for input...)`);
+            OwnConsole.ownConsole.show();
+            var answer = await vscode.window.showInformationMessage(
+                `${FilesToOverwrite.length} files will be overwritten. Are you sure you want to continue?`,
+                ...["Yes", "No"]
+            );
+            if (answer === "Yes") {
+                OwnConsole.ownConsole.appendLine('Yes selected. Here we go...\n');
+                OwnConsole.ownConsole.show();
+            } else {
+                OwnConsole.ownConsole.appendLine('No selected. Initialise aborted.\n');
+                vscode.window.showErrorMessage('Initialise aborted.');
+                OwnConsole.ownConsole.show();
+                return;
             }
-        
-                let cops: Map<Cops, string> = new Map();
-                cops.set(Cops.AA0206, 'AA0206 - The value assigned to a variable must be used, otherwise the variable is not necessary.')
-                cops.set(Cops.AA0137, 'AA0137 - Do not declare variables that are unused.')
-                cops.set(Cops.AA0008, 'AA0008 - Function calls should have parenthesis even if they do not have any parameters.')
-        
-                let whichCop: string | undefined = await window.showQuickPick(Array.from(cops.values()), { placeHolder: 'Which warning do you want to fix?' })
-                let impl: IInit;
-                switch (whichCop) {
-                    case cops.get(Cops.AA0206):
-                        impl = new CommandFixAssignedButUnusedVariableAA0206()
-                        break;
-                    case cops.get(Cops.AA0137):
-                        impl = new CommandFixUnusedVariablesAA0137()
-                        break;
-                    case cops.get(Cops.AA0008):
-                        impl = new CommandFixMissingParenthesesAA0008();
-                        break;
-                    default:
-                        return;
+        }
+
+        // Copy all files from the files to copy map.
+        OwnConsole.ownConsole.appendLine('Initialising files and directories...');
+        FilesToCopyMap.forEach((value, key) => {
+            let fileStatus = fs.statSync(value);
+            if (fileStatus.isFile()) {
+                fs.copyFileSync(value, key);
+                OwnConsole.ownConsole.appendLine(`  File "${key}" copied from template.`);
+            } else {
+                if (!fs.existsSync(key)) {
+                    fs.mkdirSync(key);
+                    OwnConsole.ownConsole.appendLine(`  Directory "${key}" created.`);
                 }
-        
-                impl.resolve();
-        */
+                else
+                    OwnConsole.ownConsole.appendLine(`  Directory "${key}" already exists.`);
+            }
+        });
+
+        // Substitute values in files.
+        if (FilesToSubstitute.length > 0) {
+            OwnConsole.ownConsole.appendLine('Substituting values in files...');
+            OwnConsole.ownConsole.appendLine(`  ${NewGuidPlaceholder} = ${NewGuidValue}`);
+            OwnConsole.ownConsole.appendLine(`  ${CurrentFolderPlaceholder} = ${CurrentFolderValue}`);
+            OwnConsole.ownConsole.appendLine(`  ${ParentFolderPlaceholder} = ${ParentFolderValue}`);
+        }
+
+
+        vscode.window.showInformationMessage('Project initialised OK.');
+
     }
 
-    private async findFilesToProcess(currentPath: string, filesToFromMap: Map<string, string>, foldersToExclude: string[], targetFolder: string) {
+    private async findFilesToProcess(currentPath: string, filesToFromMap: Map<string, string>, foldersToExclude: string[], filesToSubstitute: string[], targetFolder: string) {
         var path = require('path');
         const settingsFolderName: string = path.join(currentPath, '.noob');
         const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
         if (fs.existsSync(settingsFileName)) {
-            vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
+            //vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
             let noobSettingsRaw = fs.readFileSync(settingsFileName);
             let noobSettings = JSON.parse(noobSettingsRaw.toString());
-
             let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
+            noobSettings.toSubstitute.forEach((fileName: string) => {
+                filesToSubstitute.push(path.join(targetFolder, fileName));
+            });
 
             var result = await window.showQuickPick(quickPickItems,
                 {
                     placeHolder: `${noobSettings.folderPickPlaceHolder}`,
-                    //onDidSelectItem: item => window.showInformationMessage(`Focus: ${item}`)
                 });
 
             if (result != undefined) {
-                window.showInformationMessage(`Got folder: ${result.folder}`);
-                this.findFilesToProcess(path.join(currentPath, result.folder), filesToFromMap, foldersToExclude, targetFolder);
+                //window.showInformationMessage(`Got folder: ${result.folder}`);
+                await this.findFilesToProcess(path.join(currentPath, result.folder), filesToFromMap, foldersToExclude, filesToSubstitute, targetFolder);
 
                 quickPickItems.forEach((element, index) => {
                     foldersToExclude.push(path.join(currentPath, element.folder));
                 });
 
             }
-            
+
         }
 
-        this.listFilesInDirectory(currentPath, filesToFromMap, targetFolder, foldersToExclude);
+        this.mapFilesInDirectory(currentPath, filesToFromMap, targetFolder, foldersToExclude);
 
     }
 
 
-    private listFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string, foldersToExclude: string[]) {
+    private mapFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string, foldersToExclude: string[]) {
         const files = fs.readdirSync(directoryPath);
 
         var path = require('path');
@@ -247,17 +200,13 @@ export class Init {
             const fromPath = path.join(directoryPath, file);
             const stat = fs.statSync(fromPath);
             if (!stat.isDirectory()) {
-                OwnConsole.ownConsole.appendLine("- " + fromPath);
                 FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
             } else {
                 if (file != '.noob' && !foldersToExclude.includes(fromPath)) {
                     FilesToCopyMap.set(path.join(targetFolder, file), fromPath);
-                    OwnConsole.ownConsole.appendLine("- " + fromPath + " (dir)");
-                    this.listFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file), foldersToExclude);
+                    this.mapFilesInDirectory(fromPath, FilesToCopyMap, path.join(targetFolder, file), foldersToExclude);
                 }
             }
-            OwnConsole.ownConsole.show();
         }
-
     }
 }
