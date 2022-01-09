@@ -151,10 +151,11 @@ export class Init {
             OwnConsole.ownConsole.appendLine(`  ${ParentFolderPlaceholder} = ${ParentFolderValue}`);
             FilesToSubstitute.forEach((filePath: string) => {
                 let fileToSubstituteContent = fs.readFileSync(filePath).toString();
-                fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
-                fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
-                fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
+                fileToSubstituteContent = fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
+                fileToSubstituteContent = fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
+                fileToSubstituteContent = fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
                 fs.writeFileSync(filePath, fileToSubstituteContent);
+                OwnConsole.ownConsole.appendLine(`  ${filePath} updated.`);
             });
         }
 
