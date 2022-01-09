@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { Err } from "../Utils/Err";
 import {v4 as uuidv4} from 'uuid';
+import { stringify } from "querystring";
 
 interface FolderQuickPickItem { label: string, description?: string, detail?: string, picked?: boolean, alwaysShow?: boolean; folder: string }
 
@@ -90,7 +91,6 @@ export class Init {
             OwnConsole.ownConsole.appendLine('No files for substition of values requested.');
         }
 
-
         // If we're going to overwrite files - get the user to confirm before continuing.
         let FilesToOverwrite: string[] = [];
         FilesToCopyMap.forEach((value, key) => {
@@ -149,8 +149,14 @@ export class Init {
             OwnConsole.ownConsole.appendLine(`  ${NewGuidPlaceholder} = ${NewGuidValue}`);
             OwnConsole.ownConsole.appendLine(`  ${CurrentFolderPlaceholder} = ${CurrentFolderValue}`);
             OwnConsole.ownConsole.appendLine(`  ${ParentFolderPlaceholder} = ${ParentFolderValue}`);
+            FilesToSubstitute.forEach((filePath: string) => {
+                let fileToSubstituteContent = fs.readFileSync(filePath).toString();
+                fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
+                fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
+                fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
+                fs.writeFileSync(filePath, fileToSubstituteContent);
+            });
         }
-
 
         vscode.window.showInformationMessage('Project initialised OK.');
 
