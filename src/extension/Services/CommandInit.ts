@@ -11,14 +11,13 @@ import { stringify } from "querystring";
 
 interface FolderQuickPickItem { label: string, description?: string, detail?: string, picked?: boolean, alwaysShow?: boolean; folder: string }
 
-
 export class Init {
     async resolve() {
         let FilesToCopyMap: Map<string, string> = new Map<string, string>();
         let FilesToSubstitute: string[] = [];
         let NewProjectFilesLocation: string = Config.getNewProjectFilesLocation();
         let targetFolder: string[];
-        var foldersToExclude: string[] = [];
+        let foldersToExclude: string[] = [];
         const NewGuidPlaceholder: string = '{{NewGUID}}';
         const CurrentFolderPlaceholder: string = '{{CurrentFolder}}';
         const ParentFolderPlaceholder: string = '{{ParentFolder}}';
@@ -35,14 +34,11 @@ export class Init {
             OwnConsole.ownConsole.appendLine('Error: ' + errorMessage);
             vscode.window.showErrorMessage(errorMessage);
             return;
-        } else {
-            //let informationMessage = 'Copying files from ' + NewProjectFilesLocation;
-            //vscode.window.showInformationMessage(informationMessage);
         }
 
         // Check that the file path specified in the settings exists. Show an error message and exit if it doesn't.    
         if (!fs.existsSync(NewProjectFilesLocation)) {
-            vscode.window.showErrorMessage('Folder ' + NewProjectFilesLocation + ' does not exist.');
+            vscode.window.showErrorMessage(`Folder ${NewProjectFilesLocation} does not exist.`);
             return;
         }
 
@@ -160,6 +156,7 @@ export class Init {
         }
 
         vscode.window.showInformationMessage('Project initialised OK.');
+        OwnConsole.ownConsole.appendLine(`\nProject initialised OK.`);
 
     }
 
@@ -168,7 +165,6 @@ export class Init {
         const settingsFolderName: string = path.join(currentPath, '.noob');
         const settingsFileName: string = path.join(settingsFolderName, 'settings.json');
         if (fs.existsSync(settingsFileName)) {
-            //vscode.window.showInformationMessage('Settings file found at ' + settingsFileName);
             let noobSettingsRaw = fs.readFileSync(settingsFileName);
             let noobSettings = JSON.parse(noobSettingsRaw.toString());
             let quickPickItems: FolderQuickPickItem[] = noobSettings.folderPickItems;
@@ -182,21 +178,17 @@ export class Init {
                 });
 
             if (result != undefined) {
-                //window.showInformationMessage(`Got folder: ${result.folder}`);
                 await this.findFilesToProcess(path.join(currentPath, result.folder), filesToFromMap, foldersToExclude, filesToSubstitute, targetFolder);
 
                 quickPickItems.forEach((element, index) => {
                     foldersToExclude.push(path.join(currentPath, element.folder));
                 });
-
             }
-
         }
 
         this.mapFilesInDirectory(currentPath, filesToFromMap, targetFolder, foldersToExclude);
 
     }
-
 
     private mapFilesInDirectory(directoryPath: string, FilesToCopyMap: Map<string, string>, targetFolder: string, foldersToExclude: string[]) {
         const files = fs.readdirSync(directoryPath);
