@@ -1,12 +1,12 @@
 import { config, exit } from "process";
 import { window } from "vscode";
-import { IInit as IInit } from "../Init/IInit";
+import { IInit as IInit } from "../Interfaces/IInit";
 import { Config } from "../Utils/config";
 import { OwnConsole } from "../console";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { Err } from "../Utils/Err";
-import {v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { stringify } from "querystring";
 
 interface FolderQuickPickItem { label: string, description?: string, detail?: string, picked?: boolean, alwaysShow?: boolean; folder: string }
@@ -61,7 +61,7 @@ export class Init {
         CurrentFolderValue = CurrentFolder[0];
         var path = require('path');
         let CurrentFolderSplit = targetFolder[0].split(path.sep);
-        ParentFolderValue = CurrentFolderSplit[CurrentFolderSplit.length -2];
+        ParentFolderValue = CurrentFolderSplit[CurrentFolderSplit.length - 2];
 
         await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, FilesToSubstitute, targetFolder[0]);
 
@@ -146,12 +146,16 @@ export class Init {
             OwnConsole.ownConsole.appendLine(`  ${CurrentFolderPlaceholder} = ${CurrentFolderValue}`);
             OwnConsole.ownConsole.appendLine(`  ${ParentFolderPlaceholder} = ${ParentFolderValue}`);
             FilesToSubstitute.forEach((filePath: string) => {
-                let fileToSubstituteContent = fs.readFileSync(filePath).toString();
-                fileToSubstituteContent = fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
-                fileToSubstituteContent = fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
-                fileToSubstituteContent = fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
-                fs.writeFileSync(filePath, fileToSubstituteContent);
-                OwnConsole.ownConsole.appendLine(`  ${filePath} updated.`);
+                if (fs.existsSync(filePath)) {
+                    let fileToSubstituteContent = fs.readFileSync(filePath).toString();
+                    fileToSubstituteContent = fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
+                    fileToSubstituteContent = fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
+                    fileToSubstituteContent = fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
+                    fs.writeFileSync(filePath, fileToSubstituteContent);
+                    OwnConsole.ownConsole.appendLine(`  ${filePath} updated.`);
+                } else {
+                    OwnConsole.ownConsole.appendLine(`  ${filePath} not found. Substitution ignored.`);
+                }
             });
         }
 
