@@ -84,7 +84,7 @@ export class Init {
                 OwnConsole.ownConsole.appendLine(`  "${element}"`);
             });
         } else {
-            OwnConsole.ownConsole.appendLine('No files for substition of values requested.');
+            OwnConsole.ownConsole.appendLine('No files for substitution of values requested.');
         }
 
         // If we're going to overwrite files - get the user to confirm before continuing.

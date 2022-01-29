@@ -1,4 +1,3 @@
-import './extension/Utils/StringPrototype'
 import { OwnConsole } from './extension/console';
 import { Command } from './extension/Entities/Command';
 import { Init } from './extension/Services/CommandInit';
