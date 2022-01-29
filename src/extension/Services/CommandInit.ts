@@ -63,6 +63,8 @@ export class Init {
         let CurrentFolderSplit = targetFolder[0].split(path.sep);
         ParentFolderValue = CurrentFolderSplit[CurrentFolderSplit.length - 2];
 
+        foldersToExclude.push(path.join(NewProjectFilesLocation, '.git'));
+        
         await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, FilesToSubstitute, targetFolder[0]);
 
         // Log the files that will be copied and substituted to the console to allow the user to make an informed decision.
