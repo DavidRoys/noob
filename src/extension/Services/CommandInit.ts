@@ -64,7 +64,7 @@ export class Init {
         ParentFolderValue = CurrentFolderSplit[CurrentFolderSplit.length - 2];
 
         foldersToExclude.push(path.join(NewProjectFilesLocation, '.git'));
-        
+
         await this.findFilesToProcess(NewProjectFilesLocation, FilesToCopyMap, foldersToExclude, FilesToSubstitute, targetFolder[0]);
 
         // Log the files that will be copied and substituted to the console to allow the user to make an informed decision.
@@ -149,10 +149,14 @@ export class Init {
             OwnConsole.ownConsole.appendLine(`  ${ParentFolderPlaceholder} = ${ParentFolderValue}`);
             FilesToSubstitute.forEach((filePath: string) => {
                 if (fs.existsSync(filePath)) {
+                    let previousFileToSubstituteContent = '';
                     let fileToSubstituteContent = fs.readFileSync(filePath).toString();
-                    fileToSubstituteContent = fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
-                    fileToSubstituteContent = fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
-                    fileToSubstituteContent = fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
+                    while (previousFileToSubstituteContent != fileToSubstituteContent) {
+                        previousFileToSubstituteContent = fileToSubstituteContent;
+                        fileToSubstituteContent = fileToSubstituteContent.replace(NewGuidPlaceholder, NewGuidValue);
+                        fileToSubstituteContent = fileToSubstituteContent.replace(CurrentFolderPlaceholder, CurrentFolderValue);
+                        fileToSubstituteContent = fileToSubstituteContent.replace(ParentFolderPlaceholder, ParentFolderValue);
+                    }
                     fs.writeFileSync(filePath, fileToSubstituteContent);
                     OwnConsole.ownConsole.appendLine(`  ${filePath} updated.`);
                 } else {
